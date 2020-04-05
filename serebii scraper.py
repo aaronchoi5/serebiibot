@@ -17,9 +17,8 @@ path = sys.argv[1]
 try :
 	history = pickle.load(open(path, "rb"))
 except (OSError, IOError) as e:
-	history = set()    
+	history = set()
 
-#TODO split out into subcatagories
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 CHANNEL = os.getenv('DISCORD_CHANNEL')
@@ -33,21 +32,30 @@ async def on_ready():
 
 	dates = tree.xpath('//div[@class="post"]/h2/a/@id')
 	posts = tree.xpath('//div[@class="post"]')
+	subcats = []
+	subcatTitles = []
+	for x in range(len(dates)):
+		subcats.append(tree.xpath('(//div[@class="post"]/h2/a[@id="' + dates[x] + '"]/parent::h2/parent::div/div[@class="subcat"]/p[2])'))
+		subcatTitles.append(tree.xpath('(//div[@class="post"]/h2/a[@id="' + dates[x] + '"]/parent::h2/parent::div/div[@class="subcat"]/p[1])'))
 
 	listOfPosts = []
-	for post, date in zip(posts, dates):
-		listOfPosts.append(Post(date, post.text_content()))
+	for date, subcat in zip(dates, subcats):
+		listOfPosts.append(Post(date, subcat))
+	listOfPosts = reversed(listOfPosts)
+	subcatTitles = reversed(subcatTitles)
 
 	await client.wait_until_ready()
 	channel = client.get_channel(int(CHANNEL))
 	#if date in pickle of dates read then don't post it in discord
-	for k in reversed(range(len(listOfPosts))):
-		if listOfPosts[k].id not in history:
-			#print to discord
-			print(listOfPosts[k].id + " " + listOfPosts[k].content)
-			await channel.send(listOfPosts[k].id + " " + listOfPosts[k].content)
-			history.add(listOfPosts[k].id)
+
+	for post, subcatTitle in zip(listOfPosts, subcatTitles):
+		if post.id not in history:
+			for z, s in zip(reversed(range(len(post.content))), reversed(subcatTitle)):
+				print(post.id + " " + s.text_content() + "\n" + post.content[z].text_content())
+				await channel.send(post.id + " **" + s.text_content() + "**\n" + post.content[z].text_content())
+		history.add(post.id)
+	pickle.dump(history, open(path, "wb"))
 
 client.run(TOKEN)
-pickle.dump(history, open(path, "wb"))
+
 
