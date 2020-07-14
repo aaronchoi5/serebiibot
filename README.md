@@ -1,4 +1,4 @@
-# serebiibot
+# Serebiibot
 
 ## Overview
 This program allows the user to parse serebii's news posts and post them on a custom discord server channel. This may be subject to change based on serebii's html structure.
